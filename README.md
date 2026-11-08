@@ -72,3 +72,5 @@ Later configuration files override earlier settings.
 This project is based on TK Dodge RE by max-su-2019 and retains the original MIT license.
 
 See [LICENSE](LICENSE) for details.
+
+The MIT License applies to the source code in this repository. My original HKX animation files distributed on Nexus Mods are not covered by this license.

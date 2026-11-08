@@ -31,6 +31,17 @@ namespace
 			return bIsDodging;
 		return bIsDodging;
 	}
+	void CreateDetectionEvent(RE::Actor* act, const RE::SOUND_LEVEL soundLevel)
+	{
+		if (!act)
+			return;
+		const auto& runtimeData = act->GetActorRuntimeData();
+		if (runtimeData.currentProcess) {
+			const auto level = RE::AIFormulas::GetSoundLevelValue(soundLevel);
+			runtimeData.currentProcess->SetActorsDetectionEvent(act, act->data.location, level, act);
+			
+		}		
+	}
 	RE::BGSMaterialType* GetActorUnderMaterialFromCharacterControl(RE::Actor* act)
 	{
 		if (act) {
@@ -46,44 +57,46 @@ namespace
 					}
 					if (cell->GetRuntimeData().cellLand) {
 						auto land = cell->GetRuntimeData().cellLand;
-						// 1. セルの原点座標（世界座標系）を計算
-						float cellX = 0.0f;
-						float cellY = 0.0f;
-						if (cell->GetCoordinates()) {
-							cellX = cell->GetCoordinates()->cellX * 4096.0f;
-							cellY = cell->GetCoordinates()->cellY * 4096.0f;
-						}
+						if (land && land->loadedData) {
+							// 1. セルの原点座標（世界座標系）を計算
+							float cellX = 0.0f;
+							float cellY = 0.0f;
+							if (cell->GetCoordinates()) {
+								cellX = cell->GetCoordinates()->cellX * 4096.0f;
+								cellY = cell->GetCoordinates()->cellY * 4096.0f;
+							}
 
-						// 2. プレイヤーの世界座標を取得
-						RE::NiPoint3 playerPos = act->GetPosition();
+							// 2. プレイヤーの世界座標を取得
+							RE::NiPoint3 playerPos = act->GetPosition();
 
-						// 3. セル内のローカル相対座標に変換
-						float localX = playerPos.x - cellX;
-						float localY = playerPos.y - cellY;
+							// 3. セル内のローカル相対座標に変換
+							float localX = playerPos.x - cellX;
+							float localY = playerPos.y - cellY;
 
-						// 3. どのクアッド（0:南西, 1:南東, 2:北西, 3:北東）にいるかを判定
-						// セルの中心（2048）を基準に分ける
-						int quadIndex = 0;
-						if (localX >= 2048.0f && localY < 2048.0f)
-							quadIndex = 1;  // 南東
-						if (localX < 2048.0f && localY >= 2048.0f)
-							quadIndex = 2;  // 北西
-						if (localX >= 2048.0f && localY >= 2048.0f)
-							quadIndex = 3;  // 北東
+							// 3. どのクアッド（0:南西, 1:南東, 2:北西, 3:北東）にいるかを判定
+							// セルの中心（2048）を基準に分ける
+							int quadIndex = 0;
+							if (localX >= 2048.0f && localY < 2048.0f)
+								quadIndex = 1;  // 南東
+							if (localX < 2048.0f && localY >= 2048.0f)
+								quadIndex = 2;  // 北西
+							if (localX >= 2048.0f && localY >= 2048.0f)
+								quadIndex = 3;  // 北東
 
-						RE::TESLandTexture* targetTexture = nullptr;
-						if (land->loadedData->quadTextures[quadIndex][0]) {
-							targetTexture = land->loadedData->quadTextures[quadIndex][0];
-						}
-						else if (land->loadedData->defQuadTextures[quadIndex]) {
-							// ブレンドがなければデフォルトのクアッドテクスチャを使用
-							targetTexture = land->loadedData->defQuadTextures[quadIndex];
-						}
+							RE::TESLandTexture* targetTexture = nullptr;
+							if (land->loadedData->quadTextures[quadIndex][0]) {
+								targetTexture = land->loadedData->quadTextures[quadIndex][0];
+							}
+							else if (land->loadedData->defQuadTextures[quadIndex]) {
+								// ブレンドがなければデフォルトのクアッドテクスチャを使用
+								targetTexture = land->loadedData->defQuadTextures[quadIndex];
+							}
 
-						// 6. テクスチャからマテリアルIDを引き抜く
-						if (targetTexture && targetTexture->materialType) {
-							//spdlog::info("From Cell position -> materialID : {:d}", static_cast<std::uint32_t>(targetTexture->materialType->materialID));
-							return targetTexture->materialType;
+							// 6. テクスチャからマテリアルIDを引き抜く
+							if (targetTexture && targetTexture->materialType) {
+								//spdlog::info("From Cell position -> materialID : {:d}", static_cast<std::uint32_t>(targetTexture->materialType->materialID));
+								return targetTexture->materialType;
+							}
 						}
 					}
 				}
@@ -135,7 +148,7 @@ namespace
 							auto material = GetActorUnderMaterialFromCharacterControl(act);
 							if (material) {
 								auto it = footStep->impactSet->impactMap.find(material);
-								if (it != footStep->impactSet->impactMap.end() && it->second->sound1) {
+								if (it != footStep->impactSet->impactMap.end() && it->second && it->second->sound1) {
 									auto avo = act->Get3D1(false);
 									auto manager = RE::BGSImpactManager::GetSingleton();
 									if (manager && avo) {
@@ -152,6 +165,9 @@ namespace
 
 										[[maybe_unused]] bool bSucces = false;
 										bSucces = manager->PlayImpactDataSounds(sound);
+										if (bSucces && RE::SOUND_LEVEL::kSilent != it->second->data.soundLevel) {
+											CreateDetectionEvent(act, it->second->data.soundLevel);
+										}
 										//spdlog::info("PlayImpactDataSounds : {}", bSucces);
 									}
 								}
@@ -235,10 +251,10 @@ RE::BSEventNotifyControl animEventHandler::ProcessEvent(const RE::BSAnimationGra
 			else if (a_event->payload == "TKDDodgeJumpDown") {
 				SetImpactEffect(DODGE_FOOTSTEP_TYPE::JUMP_DOWN, act);
 			}
-			else if (a_event->payload == "TKDDodgeStepR") {
+			else if (a_event->payload == "TKDDodgeStepR") {				
 				SetImpactEffect(DODGE_FOOTSTEP_TYPE::SPRINT_R, act);
 			}
-			else if (a_event->payload == "TKDDodgeStepL") {
+			else if (a_event->payload == "TKDDodgeStepL") {				
 				SetImpactEffect(DODGE_FOOTSTEP_TYPE::SPRINT_L, act);
 			}			
 		}

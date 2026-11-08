@@ -1,4 +1,5 @@
 ﻿#include "Menu.h"
+#include "InputEvents.h"
 #include "SKSEMenuFramework/SKSEMenuFramework.h"
 
 void Settings::ReadIntSetting(CSimpleIniA& a_ini, const char* a_sectionName, const char* a_settingName, int32_t& a_setting)
@@ -112,7 +113,9 @@ void Settings::readAdditionalSettings()
 	}
 	ReadBoolSetting(ini, "Main", "EnableLegacyDodgeMethod", EnableLegacyDodgeMethod);
 	ReadBoolSetting(ini, "Main", "EnableDodgeFootStepSound", EnableDodgeFootStepSound);
-	ReadBoolSetting(ini, "Main", "PrioritizeHorizontalDodge", PrioritizeHorizontalDodge);
+	bool _PrioritizeHorizontalDodge = PrioritizeHorizontalDodge.load(std::memory_order_relaxed);
+	ReadBoolSetting(ini, "Main", "PrioritizeHorizontalDodge", _PrioritizeHorizontalDodge);
+	PrioritizeHorizontalDodge.store(_PrioritizeHorizontalDodge, std::memory_order_relaxed);
 	ReadIntSetting(ini, "Main", "GamepadDodgeKey", GamepadDodgeKey);
 	ReadBoolSetting(ini, "Main", "EnableSprintKeyDoubleTap", EnableSprintKeyDoubleTap);
 	ReadFloatSetting(ini, "Main", "DoubleTapDuration", DoubleTapDuration);
@@ -151,7 +154,9 @@ void Settings::readCustomSettings()
 	}
 	ReadBoolSetting(ini, "Main", "EnableLegacyDodgeMethod", EnableLegacyDodgeMethod);
 	ReadBoolSetting(ini, "Main", "EnableDodgeFootStepSound", EnableDodgeFootStepSound);
-	ReadBoolSetting(ini, "Main", "PrioritizeHorizontalDodge", PrioritizeHorizontalDodge);
+	bool _PrioritizeHorizontalDodge = PrioritizeHorizontalDodge.load(std::memory_order_relaxed);
+	ReadBoolSetting(ini, "Main", "PrioritizeHorizontalDodge", _PrioritizeHorizontalDodge);
+	PrioritizeHorizontalDodge.store(_PrioritizeHorizontalDodge, std::memory_order_relaxed);
 	ReadIntSetting(ini, "Main", "GamepadDodgeKey", GamepadDodgeKey);
 	ReadBoolSetting(ini, "Main", "EnableSprintKeyDoubleTap", EnableSprintKeyDoubleTap);
 	ReadFloatSetting(ini, "Main", "DoubleTapDuration", DoubleTapDuration);
@@ -161,6 +166,14 @@ void Settings::readCustomSettings()
 void Settings::writeCustomSettings()
 {
 	const std::filesystem::path filePath = "Data/SKSE/Plugins/TK Dodge RE RE/Custom.ini";
+
+	std::error_code ec;
+	std::filesystem::create_directories(filePath.parent_path(), ec);
+	if (ec) {
+		spdlog::error("Failed to create directory: {} ({})", filePath.parent_path().string(), ec.message());
+		return;
+	}
+
 	CSimpleIniA ini;
 	ini.SetUnicode();
 
@@ -176,14 +189,16 @@ void Settings::writeCustomSettings()
 	WriteFloatSetting(ini, "Main", "SprintingPressDuration", SprintingPressDuration);
 	WriteBoolSetting(ini, "Main", "EnableLegacyDodgeMethod", EnableLegacyDodgeMethod);
 	WriteBoolSetting(ini, "Main", "EnableDodgeFootStepSound", EnableDodgeFootStepSound);
-	WriteBoolSetting(ini, "Main", "PrioritizeHorizontalDodge", PrioritizeHorizontalDodge);
+	WriteBoolSetting(ini, "Main", "PrioritizeHorizontalDodge", PrioritizeHorizontalDodge.load(std::memory_order_relaxed));
 	//WriteIntSetting(ini, "Main", "GamepadDodgeKey", GamepadDodgeKey);
 	WriteBoolSetting(ini, "Main", "EnableSprintKeyDoubleTap", EnableSprintKeyDoubleTap);
 	WriteFloatSetting(ini, "Main", "DoubleTapDuration", DoubleTapDuration);
 
-	if (ini.SaveFile(filePath.c_str()) < 0) {
-		spdlog::error("Faild to save Custom.ini");		
+	if (ini.SaveFile(filePath.c_str()) != SI_OK) {
+		spdlog::error("Failed to save Custom.ini");
+		return;
 	}
+	spdlog::info("Succeeded to save {}", filePath.string());
 }
 
 static std::uint32_t editDodgeConfig = 0;
@@ -193,7 +208,6 @@ static float playerStaminaMax = 100.0f;
 
 std::atomic<std::uint32_t> g_capturedKey{ 0 };
 std::atomic<bool> g_captureTarget{ false };
-constexpr std::int32_t  kGamepadCodeBase = 266;
 struct KeyName
 {
 	std::int32_t code;
@@ -220,24 +234,36 @@ constexpr const char* kGamepadNames[] = {
 	"D-pad Up", "D-pad Down", "D-pad Left", "D-pad Right", "Start", "Back",
 	"Left Stick", "Right Stick", "LB", "RB", "A", "B", "X", "Y", "LT", "RT"
 };
+constexpr const char* kMouseNames[] = {
+	"Left Button", "Right Button", "Middle Button", "Button 4", "Button 5"
+};
 constexpr std::array<std::pair<std::uint32_t, std::int32_t>, 16> kGamepadCodes{
 	{
-		{ RE::BSWin32GamepadDevice::Key::kUp, kGamepadCodeBase + 0 },
-		{ RE::BSWin32GamepadDevice::Key::kDown, kGamepadCodeBase + 1 },
-		{ RE::BSWin32GamepadDevice::Key::kLeft, kGamepadCodeBase + 2 },
-		{ RE::BSWin32GamepadDevice::Key::kRight, kGamepadCodeBase + 3 },
-		{ RE::BSWin32GamepadDevice::Key::kStart, kGamepadCodeBase + 4 },
-		{ RE::BSWin32GamepadDevice::Key::kBack, kGamepadCodeBase + 5 },
-		{ RE::BSWin32GamepadDevice::Key::kLeftThumb, kGamepadCodeBase + 6 },
-		{ RE::BSWin32GamepadDevice::Key::kRightThumb, kGamepadCodeBase + 7 },
-		{ RE::BSWin32GamepadDevice::Key::kLeftShoulder, kGamepadCodeBase + 8 },
-		{ RE::BSWin32GamepadDevice::Key::kRightShoulder, kGamepadCodeBase + 9 },
-		{ RE::BSWin32GamepadDevice::Key::kA, kGamepadCodeBase + 10 },
-		{ RE::BSWin32GamepadDevice::Key::kB, kGamepadCodeBase + 11 },
-		{ RE::BSWin32GamepadDevice::Key::kX, kGamepadCodeBase + 12 },
-		{ RE::BSWin32GamepadDevice::Key::kY, kGamepadCodeBase + 13 },
-		{ RE::BSWin32GamepadDevice::Key::kLeftTrigger, kGamepadCodeBase + 14 },
-		{ RE::BSWin32GamepadDevice::Key::kRightTrigger, kGamepadCodeBase + 15 },
+		{ RE::BSWin32GamepadDevice::Key::kUp, tkdrere::ButtonCodeOffset::kGamepadOffset + 0 },
+		{ RE::BSWin32GamepadDevice::Key::kDown, tkdrere::ButtonCodeOffset::kGamepadOffset + 1 },
+		{ RE::BSWin32GamepadDevice::Key::kLeft, tkdrere::ButtonCodeOffset::kGamepadOffset + 2 },
+		{ RE::BSWin32GamepadDevice::Key::kRight, tkdrere::ButtonCodeOffset::kGamepadOffset + 3 },
+		{ RE::BSWin32GamepadDevice::Key::kStart, tkdrere::ButtonCodeOffset::kGamepadOffset + 4 },
+		{ RE::BSWin32GamepadDevice::Key::kBack, tkdrere::ButtonCodeOffset::kGamepadOffset + 5 },
+		{ RE::BSWin32GamepadDevice::Key::kLeftThumb, tkdrere::ButtonCodeOffset::kGamepadOffset + 6 },
+		{ RE::BSWin32GamepadDevice::Key::kRightThumb, tkdrere::ButtonCodeOffset::kGamepadOffset + 7 },
+		{ RE::BSWin32GamepadDevice::Key::kLeftShoulder, tkdrere::ButtonCodeOffset::kGamepadOffset + 8 },
+		{ RE::BSWin32GamepadDevice::Key::kRightShoulder, tkdrere::ButtonCodeOffset::kGamepadOffset + 9 },
+		{ RE::BSWin32GamepadDevice::Key::kA, tkdrere::ButtonCodeOffset::kGamepadOffset + 10 },
+		{ RE::BSWin32GamepadDevice::Key::kB, tkdrere::ButtonCodeOffset::kGamepadOffset + 11 },
+		{ RE::BSWin32GamepadDevice::Key::kX, tkdrere::ButtonCodeOffset::kGamepadOffset + 12 },
+		{ RE::BSWin32GamepadDevice::Key::kY, tkdrere::ButtonCodeOffset::kGamepadOffset + 13 },
+		{ RE::BSWin32GamepadDevice::Key::kLeftTrigger, tkdrere::ButtonCodeOffset::kGamepadOffset + 14 },
+		{ RE::BSWin32GamepadDevice::Key::kRightTrigger, tkdrere::ButtonCodeOffset::kGamepadOffset + 15 },
+	}
+};
+constexpr std::array<std::pair<std::uint32_t, std::int32_t>, 5> kMouseCodes{
+	{
+		{ RE::BSWin32MouseDevice::Key::kLeftButton, tkdrere::ButtonCodeOffset::kMouseOffset + 0 },
+		{ RE::BSWin32MouseDevice::Key::kRightButton, tkdrere::ButtonCodeOffset::kMouseOffset + 1 },
+		{ RE::BSWin32MouseDevice::Key::kMiddleButton, tkdrere::ButtonCodeOffset::kMouseOffset + 2 },
+		{ RE::BSWin32MouseDevice::Key::kButton3, tkdrere::ButtonCodeOffset::kMouseOffset + 3 },
+		{ RE::BSWin32MouseDevice::Key::kButton4, tkdrere::ButtonCodeOffset::kMouseOffset + 4 },
 	}
 };
 std::string KeyNameFor(std::int32_t a_code)
@@ -245,7 +271,11 @@ std::string KeyNameFor(std::int32_t a_code)
 	if (a_code == 0) {
 		return "-";
 	}
-	const auto gamepadIndex = a_code - kGamepadCodeBase;
+	const auto mouseIndex = a_code - tkdrere::ButtonCodeOffset::kMouseOffset;
+	if (mouseIndex >= 0 && mouseIndex < static_cast<std::int32_t>(std::size(kMouseNames))) {
+		return std::format("Mouse {}", kMouseNames[mouseIndex]);
+	}
+	const auto gamepadIndex = a_code - tkdrere::ButtonCodeOffset::kGamepadOffset;
 	if (gamepadIndex >= 0 && gamepadIndex < static_cast<std::int32_t>(std::size(kGamepadNames))) {
 		return std::format("Gamepad {}", kGamepadNames[gamepadIndex]);
 	}
@@ -286,6 +316,15 @@ static bool __stdcall OnInput(RE::InputEvent* a_event)
 		return -1;
 		};
 
+	const auto MouseCode = [](std::uint32_t buttonID) -> std::int32_t {
+		for (const auto& [mask, code] : kMouseCodes) {
+			if (mask == buttonID) {
+				return code;
+			}
+		}
+		return -1;
+		};
+
 	switch (button->GetDevice()) {
 	case RE::INPUT_DEVICE::kKeyboard:
 		if (button->GetIDCode() == 0x01) {
@@ -302,7 +341,12 @@ static bool __stdcall OnInput(RE::InputEvent* a_event)
 			break;
 		}
 		return false;
-
+	case RE::INPUT_DEVICE::kMouse:
+		if (const auto code = MouseCode(button->GetIDCode()); code >= 0) {
+			g_capturedKey.store(code);
+			break;
+		}
+		return false;
 	default:
 		return false;
 	}
@@ -386,6 +430,13 @@ void __stdcall RenderDodge()
 			StartInputEvent();
 			g_captureTarget.store(true);
 			g_capturedKey.store(0);
+		}
+		if (ImGuiMCP::IsItemClicked(ImGuiMCP::ImGuiMouseButton_Right)) {
+			if (_settings.dodgeKey != defaultSettings.dodgeKey) {
+				_settings.dodgeKey = defaultSettings.dodgeKey;
+				g_capturedKey.store(0);
+				++editDodgeConfig;
+			}
 		}
 		ImGuiMCP::SetItemTooltip("%s", dodging.sBind_Description.c_str());
 	}
@@ -514,12 +565,15 @@ void __stdcall RenderDodge()
 		ImGuiMCP::SetTooltip("%s", dodging.EnableDodgeFootStepSound_Description.c_str());
 	}
 
-	if (ImGuiMCP::Checkbox(dodging.PrioritizeHorizontalDodge.c_str(), &_settings.PrioritizeHorizontalDodge)) {
+	bool _PrioritizeHorizontalDodge = _settings.PrioritizeHorizontalDodge.load(std::memory_order_relaxed);
+	if (ImGuiMCP::Checkbox(dodging.PrioritizeHorizontalDodge.c_str(), &_PrioritizeHorizontalDodge)) {
+		_settings.PrioritizeHorizontalDodge.store(_PrioritizeHorizontalDodge, std::memory_order_relaxed);
 		++editDodgeConfig;
 	}
 	if (ImGuiMCP::IsItemClicked(ImGuiMCP::ImGuiMouseButton_Right)) {
-		if (_settings.PrioritizeHorizontalDodge != defaultSettings.PrioritizeHorizontalDodge) {
-			_settings.PrioritizeHorizontalDodge = defaultSettings.PrioritizeHorizontalDodge;
+		if (_PrioritizeHorizontalDodge != defaultSettings.PrioritizeHorizontalDodge.load(std::memory_order_relaxed)) {
+			_PrioritizeHorizontalDodge = defaultSettings.PrioritizeHorizontalDodge.load(std::memory_order_relaxed);
+			_settings.PrioritizeHorizontalDodge.store(_PrioritizeHorizontalDodge, std::memory_order_relaxed);
 			++editDodgeConfig;
 		}
 	}
@@ -611,6 +665,27 @@ namespace tkdrere
 			a_setting = value;
 		}
 	}
+
+	PrioritizeHorizontalDodgeCondition::PrioritizeHorizontalDodgeCondition() :
+		screenWidth(1280), screenHeight(720)
+	{		
+		auto graphicsState = RE::BSGraphics::State::GetSingleton();
+		if (graphicsState) {
+			// 実際の描画解像度（横・縦）
+			screenWidth = graphicsState->screenWidth;
+			screenHeight = graphicsState->screenHeight;
+		}
+		//spdlog::info("screenWidth : {:d}, screenHeight : {:d}"sv, screenWidth, screenHeight);
+	}	
+	RE::BSString PrioritizeHorizontalDodgeCondition::GetCurrent(RE::TESObjectREFR* a_refr) const
+	{
+		return Settings::GetSingleton().PrioritizeHorizontalDodge.load(std::memory_order_relaxed) ? "true" : "false";
+	}
+	bool PrioritizeHorizontalDodgeCondition::EvaluateImpl([[maybe_unused]] RE::TESObjectREFR* a_refr, [[maybe_unused]] RE::hkbClipGenerator* a_clipGenerator, [[maybe_unused]] void* a_subMod) const
+	{
+		return Settings::GetSingleton().PrioritizeHorizontalDodge.load(std::memory_order_relaxed);
+	}
+
 	void Register()
 	{
 		if (!SKSEMenuFramework::IsInstalled()) {

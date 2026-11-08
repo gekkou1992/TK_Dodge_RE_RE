@@ -58,39 +58,23 @@ std::uint32_t InputEventHandler::GetGamepadIndex(RE::BSWin32GamepadDevice::Key a
 		index = 15;
 		break;
 	default:
-		index = kInvalid;
+		index = tkdrere::ButtonCodeOffset::kInvalid;
 		break;
 	}
 
-	return index != kInvalid ? index + kGamepadOffset : kInvalid;
-}
-
-void InputEventHandler::offsetButtonEventID(RE::ButtonEvent* a_event, uint32_t& id)
-{
-	using DeviceType = RE::INPUT_DEVICE;
-	switch (a_event->device.get()) {
-	case DeviceType::kMouse:
-		id += kMouseOffset;
-		break;
-	case DeviceType::kKeyboard:
-		id += kKeyboardOffset;
-		break;
-	case DeviceType::kGamepad:
-		id = GetGamepadIndex(static_cast<RE::BSWin32GamepadDevice::Key>(id));
-		break;
-	}
+	return index != tkdrere::ButtonCodeOffset::kInvalid ? index + tkdrere::ButtonCodeOffset::kGamepadOffset : tkdrere::ButtonCodeOffset::kInvalid;
 }
 
 inline uint32_t InputEventHandler::getOffsetButtonIDCode(RE::ButtonEvent* a_event)
 {
-	auto id = a_event->idCode;
+	auto id = a_event->GetIDCode();
 	using DeviceType = RE::INPUT_DEVICE;
-	switch (a_event->device.get()) {
+	switch (a_event->GetDevice()) {
 	case DeviceType::kMouse:
-		id += kMouseOffset;
+		id += tkdrere::ButtonCodeOffset::kMouseOffset;
 		break;
 	case DeviceType::kKeyboard:
-		id += kKeyboardOffset;
+		id += tkdrere::ButtonCodeOffset::kKeyboardOffset;
 		break;
 	case DeviceType::kGamepad:
 		id = GetGamepadIndex(static_cast<RE::BSWin32GamepadDevice::Key>(id));
@@ -99,15 +83,13 @@ inline uint32_t InputEventHandler::getOffsetButtonIDCode(RE::ButtonEvent* a_even
 	return id;
 }
 
-
-
 EventResult InputEventHandler::ProcessEvent(RE::InputEvent* const* a_event, RE::BSTEventSource<RE::InputEvent*>*)
 {
 	using EventType = RE::INPUT_EVENT_TYPE;
 	
 	if (!a_event) 
 		return EventResult::kContinue;
-
+	
 	const auto ui = RE::UI::GetSingleton();
 	if (!ui || ui->GameIsPaused()) {
 		return EventResult::kContinue;
@@ -125,8 +107,8 @@ EventResult InputEventHandler::ProcessEvent(RE::InputEvent* const* a_event, RE::
 	for (auto event = *a_event; event; event = event->next) {
 		if (event->eventType != EventType::kButton)
 			continue;
-
-		const auto button = static_cast<RE::ButtonEvent*>(event);
+		
+		const auto button = static_cast<RE::ButtonEvent*>(event);		
 		if (!button->IsDown()) {
 			continue;
 		}
@@ -137,6 +119,9 @@ EventResult InputEventHandler::ProcessEvent(RE::InputEvent* const* a_event, RE::
 
 		const auto keyCode = getOffsetButtonIDCode(button);
 
+		if (keyCode == tkdrere::ButtonCodeOffset::kInvalid)
+			continue;
+		
 		if (keyCode == settings.dodgeKey) {
 			TKRE::dodge(false);
 		}
@@ -145,13 +130,7 @@ EventResult InputEventHandler::ProcessEvent(RE::InputEvent* const* a_event, RE::
 			keyCode == settings.GamepadDodgeKey) {
 			TKRE::dodge(false);
 		}
-
 	}
 
 	return EventResult::kContinue;
 }
-
-
-
-
-

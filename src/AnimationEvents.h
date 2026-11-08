@@ -7,7 +7,7 @@ public:
 	animEventHandler();
 	animEventHandler(const animEventHandler&) = delete;
 	animEventHandler(animEventHandler&&) = delete;
-	~animEventHandler() = default;
+	~animEventHandler() override = default;
 
 	animEventHandler& operator=(const animEventHandler&) = delete;
 	animEventHandler& operator=(animEventHandler&&) = delete;
@@ -20,7 +20,7 @@ public:
 	static animEventHandler& GetSingleton(void);
 	void Register(void);
 private:
-	virtual RE::BSEventNotifyControl ProcessEvent(const RE::BSAnimationGraphEvent* a_event, RE::BSTEventSource<RE::BSAnimationGraphEvent>*) override;
+	RE::BSEventNotifyControl ProcessEvent(const RE::BSAnimationGraphEvent* a_event, RE::BSTEventSource<RE::BSAnimationGraphEvent>*) override;
 	void EventControl(const std::uint32_t index);
 	std::uint32_t toggleEvents;
 };

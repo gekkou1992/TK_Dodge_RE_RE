@@ -53,11 +53,21 @@ Settings are loaded in the following order:
 
 Later configuration files override earlier settings.
 
+## Build Requirements
+
+In addition to the runtime requirements, building this project requires the following development dependencies:
+
+- **CommonLibSSE-NG**
+- **Open Animation Replacer (OAR)** — API headers
+- **SimpleIni** — Header-only INI parser
+- **SKSE Menu Framework developers** — API headers
+
+These dependencies are not included in this repository.
+
 ## Requirements
 
 - Skyrim Script Extender (SKSE)
 - Address Library for SKSE Plugins
-- SKSE Menu Framework (for the in-game configuration menu)
 - Original TK Dodge RE requirements, where applicable
 
 ## Credits

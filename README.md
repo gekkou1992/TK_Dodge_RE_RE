@@ -64,8 +64,8 @@ Later configuration files override earlier settings.
 
 - **max-su-2019** — Original TK Dodge RE
 - **SKSE Menu Framework developers** — In-game menu framework
-- Brodie Thiesfield — SimpleIni
-- ersh1 OpenAnimationReplacer
+- **Brodie Thiesfield** — SimpleIni
+- **ersh1** OpenAnimationReplacer
 
 ## License
 

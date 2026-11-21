@@ -275,14 +275,14 @@ inline bool canDodge(RE::PlayerCharacter* a_pc, const bool a_allowSprinting)
 
 	// Attack
 	if (actorState->GetAttackState() != RE::ATTACK_STATE_ENUM::kNone &&
-		!settings.enableDodgeAttackCancel)
+		!settings.EnableDodgeAttackCancel)
 		return false;
 
 	// Sprint / Sneak
 	if (actorState->IsSprinting() && settings.EnableSprintKeyDodge && !a_allowSprinting)
 		return false;
 
-	if (a_pc->IsSneaking() && !settings.enableSneakDodge)
+	if (a_pc->IsSneaking() && !settings.EnableSneakDodge)
 		return false;
 
 	// Controls
@@ -309,7 +309,7 @@ inline bool canDodge(RE::PlayerCharacter* a_pc, const bool a_allowSprinting)
 		return false;
 
 	// Stamina
-	if (actorValueOwner->GetActorValue(RE::ActorValue::kStamina) < settings.dodgeStamina)
+	if (actorValueOwner->GetActorValue(RE::ActorValue::kStamina) < settings.DodgeStamina)
 		return false;
 
 	return true;
@@ -324,7 +324,7 @@ void TKRE::dodge(bool a_requireMovement, bool a_allowSprinting)
 		return;
 	}
 	const auto& settings = Settings::GetSingleton();
-	std::string dodge_event = settings.defaultDodgeEvent;
+	std::string dodge_event = settings.DefaultDodgeEvent;
 	if (settings.EnableLegacyDodgeMethod)
 	{
 		if (!GetDodgeEvent(dodge_event))
@@ -335,11 +335,11 @@ void TKRE::dodge(bool a_requireMovement, bool a_allowSprinting)
 			return;
 	}
 
-	//if (Settings::stepDodge) {
+	//if (Settings::StepDodge) {
 	//	pc->SetGraphVariableInt("iStep", 2);
 	//}
 	
-	pc->SetGraphVariableInt("iStep", settings.stepDodge ? 2 : 0);
+	pc->SetGraphVariableInt("iStep", settings.StepDodge ? 2 : 0);
 	
 	pc->SetGraphVariableFloat("TKDR_IframeDuration", settings.iFrameDuration);  //Set invulnerable frame duration
 	pc->NotifyAnimationGraph(dodge_event);                                       //Send TK Dodge Event
@@ -355,5 +355,5 @@ void TKRE::applyDodgeCost()
 	if (!actorValueOwner)
 		return;
 
-	actorValueOwner->DamageActorValue(RE::ActorValue::kStamina, - Settings::GetSingleton().dodgeStamina);
+	actorValueOwner->DamageActorValue(RE::ActorValue::kStamina, - Settings::GetSingleton().DodgeStamina);
 }

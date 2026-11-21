@@ -181,53 +181,124 @@ namespace
 		}
 	}	
 }
-animEventHandler::animEventHandler() : toggleEvents(0) {}
 animEventHandler& animEventHandler::GetSingleton()
 {
 	static animEventHandler singleton;
 	return singleton;
 }
-void animEventHandler::Register()
+void animEventHandler::Register(const bool bNewGame)
 {
-	EventControl(ANIMGRAPH_ADD);
+	if (!bNewGame) {
+		EventControl(ANIMGRAPH_ADD);
+		EventControl(MENU_OPEN_CLOSE_REMOVE);
+	}
+	else {
+		EventControl(ANIMGRAPH_REMOVE);
+		EventControl(MENU_OPEN_CLOSE_ADD);
+	}
 }
 void animEventHandler::EventControl(const std::uint32_t index)
 {
 	using EVENT = animEventHandler::EVENT_INDEX;
 	switch (index) {
 	case EVENT::ANIMGRAPH_ADD:
-		if (0 == (toggleEvents & EVENT::ANIMGRAPH_ADD)) {
-			auto player = RE::PlayerCharacter::GetSingleton();
-			if (player && player->AddAnimationGraphEventSink(this)) {
-				toggleEvents |= EVENT::ANIMGRAPH_ADD;
-			}
-		}
-		break;
-	case EVENT::ANIMGRAPH_REMOVE:
-		if (0 != (toggleEvents & EVENT::ANIMGRAPH_ADD)) {
+		{
 			auto player = RE::PlayerCharacter::GetSingleton();
 			if (player) {
 				RE::BSAnimationGraphManagerPtr graphManager;
 				if (player->GetAnimationGraphManager(graphManager) && graphManager) {
-					bool bSinked = false;
-					for (auto& graph : graphManager->graphs) {
-						if (bSinked)
-							break;
-						auto sorce = graph->GetEventSource<RE::BSAnimationGraphEvent>();
-						if (sorce) {
-							for (auto sink : sorce->sinks) {
-								if (sink && sink == this) {
-									bSinked = true;
-									toggleEvents &= ~EVENT::ANIMGRAPH_ADD;
-									sorce->RemoveEventSink(this);
-									//spdlog::info("AnimationGraphEvent RemoveEventSink");
-									break;
+					if (!graphManager->graphs.empty()) {
+						bool sinked = false;
+						for (const auto& animationGraph : graphManager->graphs) {
+							if (!animationGraph)
+								continue;
+
+							auto eventSource = animationGraph->GetEventSource<RE::BSAnimationGraphEvent>();
+							if (!eventSource)
+								continue;
+
+							if (std::find(eventSource->sinks.begin(), eventSource->sinks.end(), this) != eventSource->sinks.end()) {
+								sinked = true;
+								break;
+							}
+						}
+
+						if (!sinked) {
+							auto animationGraph = graphManager->graphs.front();
+							if (animationGraph) {
+								auto eventSource = animationGraph->GetEventSource<RE::BSAnimationGraphEvent>();
+								if (eventSource) {
+									eventSource->AddEventSink(this);									
+									spdlog::info("AddAnimationGraphEventSink");
 								}
 							}
 						}
 					}
 				}
 			}
+		}
+		break;
+	case EVENT::ANIMGRAPH_REMOVE:
+		{
+			auto player = RE::PlayerCharacter::GetSingleton();
+			if (player) {
+				RE::BSAnimationGraphManagerPtr graphManager;
+				if (player->GetAnimationGraphManager(graphManager) && graphManager) {					
+					bool removed = false;
+					for (const auto& animationGraph : graphManager->graphs) {
+						if (!animationGraph)
+							continue;
+						const auto eventSource = animationGraph->GetEventSource<RE::BSAnimationGraphEvent>();
+						if (!eventSource)
+							continue;
+
+						auto it = std::find(eventSource->sinks.begin(), eventSource->sinks.end(), this);
+						if (it != eventSource->sinks.end()) {
+							eventSource->RemoveEventSink(this);
+							removed = true;
+						}
+					}
+					if (removed) {						
+						spdlog::info("AnimationGraphEvent RemoveEventsink");
+					}					
+				}				
+			}
+		}
+		break;
+	case EVENT::MENU_OPEN_CLOSE_ADD:
+		{
+			auto ui = RE::UI::GetSingleton();
+			if (ui) {
+				auto eventSource = ui->GetEventSource<RE::MenuOpenCloseEvent>();
+				if (eventSource) {
+					auto it = std::find(eventSource->sinks.begin(), eventSource->sinks.end(), this);
+					if (it == eventSource->sinks.end()) {
+						eventSource->AddEventSink(this);
+						spdlog::info("Add MenuOpenCloseEventSink");
+					}
+					else {
+						spdlog::error("Already exist Menu Event sink");
+					}
+				}
+			}
+		}
+		break;
+	case EVENT::MENU_OPEN_CLOSE_REMOVE:
+		{
+			auto ui = RE::UI::GetSingleton();
+			if (ui) {
+				auto eventSource = ui->GetEventSource<RE::MenuOpenCloseEvent>();
+				if (eventSource) {
+					auto it = std::find(eventSource->sinks.begin(), eventSource->sinks.end(), this);
+					if (it != eventSource->sinks.end()) {						
+						eventSource->RemoveEventSink(this);
+						spdlog::info("Remove MenuOpenCloseEventSink");
+					}
+					else {
+						spdlog::error("Not exist Menu Event sink");
+					}
+				}
+			}			
 		}
 		break;
 	}
@@ -248,7 +319,7 @@ RE::BSEventNotifyControl animEventHandler::ProcessEvent(const RE::BSAnimationGra
 			if (a_event->payload == "TKDDodgeJumpUp") {
 				SetImpactEffect(DODGE_FOOTSTEP_TYPE::JUMP_UP, act);
 			}
-			else if (a_event->payload == "TKDDodgeJumpDown") {
+			else if (a_event->payload == "TKDDodgeJumpDown") {				
 				SetImpactEffect(DODGE_FOOTSTEP_TYPE::JUMP_DOWN, act);
 			}
 			else if (a_event->payload == "TKDDodgeStepR") {				
@@ -258,6 +329,15 @@ RE::BSEventNotifyControl animEventHandler::ProcessEvent(const RE::BSAnimationGra
 				SetImpactEffect(DODGE_FOOTSTEP_TYPE::SPRINT_L, act);
 			}			
 		}
+	}
+	return RE::BSEventNotifyControl::kContinue;
+}
+RE::BSEventNotifyControl animEventHandler::ProcessEvent(const RE::MenuOpenCloseEvent* a_event, RE::BSTEventSource<RE::MenuOpenCloseEvent>*)
+{
+	if (!a_event)
+		return RE::BSEventNotifyControl::kContinue;
+	if (RE::RaceSexMenu::MENU_NAME == a_event->menuName && !a_event->opening) {
+		Register(false);
 	}
 	return RE::BSEventNotifyControl::kContinue;
 }

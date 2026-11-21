@@ -25,7 +25,7 @@ namespace Hooks
 				_ProcessButton(a_this, a_event, a_data);
 				return;
 			}
-
+			
 			auto userEvent = a_event->QUserEvent();
 			auto userEvents = RE::UserEvents::GetSingleton();
 

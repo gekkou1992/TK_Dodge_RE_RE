@@ -122,11 +122,11 @@ EventResult InputEventHandler::ProcessEvent(RE::InputEvent* const* a_event, RE::
 		if (keyCode == tkdrere::ButtonCodeOffset::kInvalid)
 			continue;
 		
-		if (keyCode == settings.dodgeKey) {
+		if (keyCode == settings.DodgeKey) {
 			TKRE::dodge(false);
 		}
 		else if (button->GetDevice() == RE::INPUT_DEVICE::kGamepad &&
-			settings.GamepadDodgeKey != settings.dodgeKey &&
+			settings.GamepadDodgeKey != settings.DodgeKey &&
 			keyCode == settings.GamepadDodgeKey) {
 			TKRE::dodge(false);
 		}

@@ -6,7 +6,6 @@
 
 namespace TKDodge
 {
-
 	void EventCallback(SKSE::MessagingInterface::Message* msg)
 	{
 		if (msg->type == SKSE::MessagingInterface::kDataLoaded) {			
@@ -38,10 +37,10 @@ namespace TKDodge
 			}
 		}
 		else if (msg->type == SKSE::MessagingInterface::kPostLoadGame) {
-			animEventHandler::GetSingleton().Register();
+			animEventHandler::GetSingleton().Register(false);
 		}
 		else if (msg->type == SKSE::MessagingInterface::kNewGame) {
-			animEventHandler::GetSingleton().Register();
+			animEventHandler::GetSingleton().Register(true);
 		}
 	}
 }

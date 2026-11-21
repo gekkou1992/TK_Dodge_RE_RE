@@ -81,17 +81,17 @@ void Settings::readSettings()
 		return;
 	}
 
-	ReadIntSetting(ini, "Main", "DodgeHotkey", dodgeKey);
+	ReadIntSetting(ini, "Main", "DodgeHotkey", DodgeKey);
 	ReadBoolSetting(ini, "Main", "EnableSprintKeyDodge", EnableSprintKeyDodge);
 	ReadBoolSetting(ini, "Main", "EnableSneakKeyDodge", EnableSneakKeyDodge);
-	ReadBoolSetting(ini, "Main", "StepDodge", stepDodge);
-	ReadBoolSetting(ini, "Main", "enableDodgeAttackCancel", enableDodgeAttackCancel);
-	ReadFloatSetting(ini, "Main", "DodgeStamina", dodgeStamina);
-	ReadBoolSetting(ini, "Main", "enableSneakDodge", enableSneakDodge);
+	ReadBoolSetting(ini, "Main", "StepDodge", StepDodge);
+	ReadBoolSetting(ini, "Main", "EnableDodgeAttackCancel", EnableDodgeAttackCancel);
+	ReadFloatSetting(ini, "Main", "DodgeStamina", DodgeStamina);
+	ReadBoolSetting(ini, "Main", "EnableSneakDodge", EnableSneakDodge);
 	ReadFloatSetting(ini, "Main", "iFrameDuration", iFrameDuration);
-	if (const auto value = ini.GetValue("Main", "defaultDodgeEvent")) {
+	if (const auto value = ini.GetValue("Main", "DefaultDodgeEvent")) {
 		const auto it = std::ranges::find(dodgeEvents, value);
-		defaultDodgeEvent = it != dodgeEvents.end() ? value : "TKDodgeBack";
+		DefaultDodgeEvent = it != dodgeEvents.end() ? value : "TKDodgeBack";
 	}
 	ReadFloatSetting(ini, "Main", "SprintingPressDuration", SprintingPressDuration);
 	if (iFrameDuration < 0.f) {
@@ -131,17 +131,17 @@ void Settings::readCustomSettings()
 		//spdlog::error("Failed to load \"Custom.ini\"");
 		return;
 	}
-	ReadIntSetting(ini, "Main", "DodgeHotkey", dodgeKey);
+	ReadIntSetting(ini, "Main", "DodgeHotkey", DodgeKey);
 	ReadBoolSetting(ini, "Main", "EnableSprintKeyDodge", EnableSprintKeyDodge);
 	ReadBoolSetting(ini, "Main", "EnableSneakKeyDodge", EnableSneakKeyDodge);
-	ReadBoolSetting(ini, "Main", "StepDodge", stepDodge);
-	ReadBoolSetting(ini, "Main", "enableDodgeAttackCancel", enableDodgeAttackCancel);
-	ReadFloatSetting(ini, "Main", "DodgeStamina", dodgeStamina);
-	ReadBoolSetting(ini, "Main", "enableSneakDodge", enableSneakDodge);
+	ReadBoolSetting(ini, "Main", "StepDodge", StepDodge);
+	ReadBoolSetting(ini, "Main", "EnableDodgeAttackCancel", EnableDodgeAttackCancel);
+	ReadFloatSetting(ini, "Main", "DodgeStamina", DodgeStamina);
+	ReadBoolSetting(ini, "Main", "EnableSneakDodge", EnableSneakDodge);
 	ReadFloatSetting(ini, "Main", "iFrameDuration", iFrameDuration);
-	if (const auto value = ini.GetValue("Main", "defaultDodgeEvent")) {
+	if (const auto value = ini.GetValue("Main", "DefaultDodgeEvent")) {
 		const auto it = std::ranges::find(dodgeEvents, value);
-		defaultDodgeEvent = it != dodgeEvents.end() ? value : "TKDodgeBack";
+		DefaultDodgeEvent = it != dodgeEvents.end() ? value : "TKDodgeBack";
 	}
 	ReadFloatSetting(ini, "Main", "SprintingPressDuration", SprintingPressDuration);
 	if (iFrameDuration < 0.f) {
@@ -177,15 +177,15 @@ void Settings::writeCustomSettings()
 	CSimpleIniA ini;
 	ini.SetUnicode();
 
-	WriteIntSetting(ini, "Main", "DodgeHotkey", dodgeKey);
+	WriteIntSetting(ini, "Main", "DodgeHotkey", DodgeKey);
 	WriteBoolSetting(ini, "Main", "EnableSprintKeyDodge", EnableSprintKeyDodge);
-	WriteBoolSetting(ini, "Main", "StepDodge", stepDodge);
-	WriteFloatSetting(ini, "Main", "DodgeStamina", dodgeStamina);
+	WriteBoolSetting(ini, "Main", "StepDodge", StepDodge);
+	WriteFloatSetting(ini, "Main", "DodgeStamina", DodgeStamina);
 	//WriteBoolSetting(ini, "Main", "EnableSneakKeyDodge", EnableSneakKeyDodge);	
-	WriteBoolSetting(ini, "Main", "enableSneakDodge", enableSneakDodge);
+	WriteBoolSetting(ini, "Main", "EnableSneakDodge", EnableSneakDodge);
 	WriteFloatSetting(ini, "Main", "iFrameDuration", iFrameDuration);
-	WriteBoolSetting(ini, "Main", "enableDodgeAttackCancel", enableDodgeAttackCancel);
-	WriteStringSetting(ini, "Main", "defaultDodgeEvent", defaultDodgeEvent);
+	WriteBoolSetting(ini, "Main", "EnableDodgeAttackCancel", EnableDodgeAttackCancel);
+	WriteStringSetting(ini, "Main", "DefaultDodgeEvent", DefaultDodgeEvent);
 	WriteFloatSetting(ini, "Main", "SprintingPressDuration", SprintingPressDuration);
 	WriteBoolSetting(ini, "Main", "EnableLegacyDodgeMethod", EnableLegacyDodgeMethod);
 	WriteBoolSetting(ini, "Main", "EnableDodgeFootStepSound", EnableDodgeFootStepSound);
@@ -395,17 +395,17 @@ void __stdcall RenderDodge()
 
 	if (g_captureTarget.load()) {
 		if (const auto captured = g_capturedKey.exchange(0); captured != 0) {
-			_settings.dodgeKey = captured;
+			_settings.DodgeKey = captured;
 			++editDodgeConfig;
 			g_captureTarget.store(false);
 			StopInputEvent();
 		}
 	}
 	ImGuiMCP::AlignTextToFramePadding();
-	ImGuiMCP::Text("%s: { %s }", dodging.DodgeHotkey.c_str(), KeyNameFor(_settings.dodgeKey).c_str());
+	ImGuiMCP::Text("%s: { %s }", dodging.DodgeHotkey.c_str(), KeyNameFor(_settings.DodgeKey).c_str());
 	if (ImGuiMCP::IsItemClicked(ImGuiMCP::ImGuiMouseButton_Right)) {
-		if (_settings.dodgeKey != defaultSettings.dodgeKey) {
-			_settings.dodgeKey = defaultSettings.dodgeKey;
+		if (_settings.DodgeKey != defaultSettings.DodgeKey) {
+			_settings.DodgeKey = defaultSettings.DodgeKey;
 			g_capturedKey.store(0);
 			++editDodgeConfig;
 		}
@@ -432,8 +432,8 @@ void __stdcall RenderDodge()
 			g_capturedKey.store(0);
 		}
 		if (ImGuiMCP::IsItemClicked(ImGuiMCP::ImGuiMouseButton_Right)) {
-			if (_settings.dodgeKey != defaultSettings.dodgeKey) {
-				_settings.dodgeKey = defaultSettings.dodgeKey;
+			if (_settings.DodgeKey != defaultSettings.DodgeKey) {
+				_settings.DodgeKey = defaultSettings.DodgeKey;
 				g_capturedKey.store(0);
 				++editDodgeConfig;
 			}
@@ -454,12 +454,12 @@ void __stdcall RenderDodge()
 		ImGuiMCP::SetTooltip("%s", dodging.EnableSprintKeyDodge_Description.c_str());
 	}
 
-	if (ImGuiMCP::Checkbox(dodging.StepDodge.c_str(), &_settings.stepDodge)) {
+	if (ImGuiMCP::Checkbox(dodging.StepDodge.c_str(), &_settings.StepDodge)) {
 		++editDodgeConfig;
 	}
 	if (ImGuiMCP::IsItemClicked(ImGuiMCP::ImGuiMouseButton_Right)) {
-		if (_settings.stepDodge != defaultSettings.stepDodge) {
-			_settings.stepDodge = defaultSettings.stepDodge;
+		if (_settings.StepDodge != defaultSettings.StepDodge) {
+			_settings.StepDodge = defaultSettings.StepDodge;
 			++editDodgeConfig;
 		}
 	}
@@ -467,13 +467,13 @@ void __stdcall RenderDodge()
 		ImGuiMCP::SetTooltip("%s", dodging.StepDodge_Description.c_str());
 	}		
 
-	ImGuiMCP::SliderFloat(dodging.DodgeStamina.c_str(), &_settings.dodgeStamina, 0.0f, playerStaminaMax, "%.0f", ImGuiMCP::ImGuiSliderFlags_AlwaysClamp);
+	ImGuiMCP::SliderFloat(dodging.DodgeStamina.c_str(), &_settings.DodgeStamina, 0.0f, playerStaminaMax, "%.0f", ImGuiMCP::ImGuiSliderFlags_AlwaysClamp);
 	if (ImGuiMCP::IsItemDeactivatedAfterEdit()) {
 		++editDodgeConfig;
 	}
 	if (ImGuiMCP::IsItemClicked(ImGuiMCP::ImGuiMouseButton_Right)) {
-		if (_settings.dodgeStamina != defaultSettings.dodgeStamina) {
-			_settings.dodgeStamina = defaultSettings.dodgeStamina;
+		if (_settings.DodgeStamina != defaultSettings.DodgeStamina) {
+			_settings.DodgeStamina = defaultSettings.DodgeStamina;
 			++editDodgeConfig;
 		}
 	}
@@ -481,17 +481,17 @@ void __stdcall RenderDodge()
 		ImGuiMCP::SetTooltip("%s", dodging.DodgeStamina_Description.c_str());
 	}	
 
-	if (ImGuiMCP::Checkbox(dodging.enableSneakDodge.c_str(), &_settings.enableSneakDodge)) {
+	if (ImGuiMCP::Checkbox(dodging.EnableSneakDodge.c_str(), &_settings.EnableSneakDodge)) {
 		++editDodgeConfig;
 	}
 	if (ImGuiMCP::IsItemClicked(ImGuiMCP::ImGuiMouseButton_Right)) {
-		if (_settings.enableSneakDodge != defaultSettings.enableSneakDodge) {
-			_settings.enableSneakDodge = defaultSettings.enableSneakDodge;
+		if (_settings.EnableSneakDodge != defaultSettings.EnableSneakDodge) {
+			_settings.EnableSneakDodge = defaultSettings.EnableSneakDodge;
 			++editDodgeConfig;
 		}
 	}
 	if (ImGuiMCP::IsItemHovered(ImGuiMCP::ImGuiHoveredFlags_AllowWhenDisabled)) {
-		ImGuiMCP::SetTooltip("%s", dodging.enableSneakDodge_Description.c_str());
+		ImGuiMCP::SetTooltip("%s", dodging.EnableSneakDodge_Description.c_str());
 	}
 
 	ImGuiMCP::SliderFloat(dodging.iFrameDuration.c_str(), &_settings.iFrameDuration, 0.0f, 1.0f, "%.1f", ImGuiMCP::ImGuiSliderFlags_AlwaysClamp);
@@ -508,12 +508,12 @@ void __stdcall RenderDodge()
 		ImGuiMCP::SetTooltip("%s", dodging.iFrameDuration_Description.c_str());
 	}	
 
-	if (ImGuiMCP::Checkbox(dodging.EnableDodgeAttackCancel.c_str(), &_settings.enableDodgeAttackCancel)) {
+	if (ImGuiMCP::Checkbox(dodging.EnableDodgeAttackCancel.c_str(), &_settings.EnableDodgeAttackCancel)) {
 		++editDodgeConfig;
 	}
 	if (ImGuiMCP::IsItemClicked(ImGuiMCP::ImGuiMouseButton_Right)) {
-		if (_settings.enableDodgeAttackCancel != defaultSettings.enableDodgeAttackCancel) {
-			_settings.enableDodgeAttackCancel = defaultSettings.enableDodgeAttackCancel;
+		if (_settings.EnableDodgeAttackCancel != defaultSettings.EnableDodgeAttackCancel) {
+			_settings.EnableDodgeAttackCancel = defaultSettings.EnableDodgeAttackCancel;
 			++editDodgeConfig;
 		}
 	}
@@ -522,21 +522,21 @@ void __stdcall RenderDodge()
 	}
 
 
-	const auto it = std::ranges::find(dodgeEvents, _settings.defaultDodgeEvent);
+	const auto it = std::ranges::find(dodgeEvents, _settings.DefaultDodgeEvent);
 	int selectedEvent = it != dodgeEvents.end() ? static_cast<int>(it - dodgeEvents.begin()) : 0;
 
-	if (ImGuiMCP::Combo(dodging.defaultDodgeEvent.c_str(), &selectedEvent, dodgeEvents.data(), static_cast<int>(dodgeEvents.size()))) {
-		_settings.defaultDodgeEvent = dodgeEvents[selectedEvent];
+	if (ImGuiMCP::Combo(dodging.DefaultDodgeEvent.c_str(), &selectedEvent, dodgeEvents.data(), static_cast<int>(dodgeEvents.size()))) {
+		_settings.DefaultDodgeEvent = dodgeEvents[selectedEvent];
 		++editDodgeConfig;
 	}
 	if (ImGuiMCP::IsItemClicked(ImGuiMCP::ImGuiMouseButton_Right)) {
-		if (_settings.defaultDodgeEvent != defaultSettings.defaultDodgeEvent) {
-			_settings.defaultDodgeEvent = defaultSettings.defaultDodgeEvent;
+		if (_settings.DefaultDodgeEvent != defaultSettings.DefaultDodgeEvent) {
+			_settings.DefaultDodgeEvent = defaultSettings.DefaultDodgeEvent;
 			++editDodgeConfig;
 		}
 	}
 	if (ImGuiMCP::IsItemHovered()) {
-		ImGuiMCP::SetTooltip("%s", dodging.defaultDodgeEvent_Description.c_str());
+		ImGuiMCP::SetTooltip("%s", dodging.DefaultDodgeEvent_Description.c_str());
 	}
 
 	if (ImGuiMCP::Checkbox(dodging.EnableLegacyDodgeMethod.c_str(), &_settings.EnableLegacyDodgeMethod)) {
@@ -633,8 +633,8 @@ namespace tkdrere
 		ReadStringSetting(ini, "Main", "StepDodge_Description", dodgeLanguage.StepDodge_Description);
 		ReadStringSetting(ini, "Main", "DodgeStamina", dodgeLanguage.DodgeStamina);
 		ReadStringSetting(ini, "Main", "DodgeStamina_Description", dodgeLanguage.DodgeStamina_Description);
-		ReadStringSetting(ini, "Main", "enableSneakDodge", dodgeLanguage.enableSneakDodge);
-		ReadStringSetting(ini, "Main", "enableSneakDodge_Description", dodgeLanguage.enableSneakDodge_Description);
+		ReadStringSetting(ini, "Main", "EnableSneakDodge", dodgeLanguage.EnableSneakDodge);
+		ReadStringSetting(ini, "Main", "EnableSneakDodge_Description", dodgeLanguage.EnableSneakDodge_Description);
 		ReadStringSetting(ini, "Main", "sBind", dodgeLanguage.sBind);
 		ReadStringSetting(ini, "Main", "sBind_Description", dodgeLanguage.sBind_Description);
 		ReadStringSetting(ini, "Main", "sCancel", dodgeLanguage.sCancel);
@@ -643,8 +643,8 @@ namespace tkdrere
 		ReadStringSetting(ini, "Main", "iFrameDuration_Description", dodgeLanguage.iFrameDuration_Description);
 		ReadStringSetting(ini, "Main", "EnableDodgeAttackCancel", dodgeLanguage.EnableDodgeAttackCancel);
 		ReadStringSetting(ini, "Main", "EnableDodgeAttackCancel_Description", dodgeLanguage.EnableDodgeAttackCancel_Description);
-		ReadStringSetting(ini, "Main", "defaultDodgeEvent", dodgeLanguage.defaultDodgeEvent);
-		ReadStringSetting(ini, "Main", "defaultDodgeEvent_Description", dodgeLanguage.defaultDodgeEvent_Description);
+		ReadStringSetting(ini, "Main", "DefaultDodgeEvent", dodgeLanguage.DefaultDodgeEvent);
+		ReadStringSetting(ini, "Main", "DefaultDodgeEvent_Description", dodgeLanguage.DefaultDodgeEvent_Description);
 		ReadStringSetting(ini, "Main", "EnableLegacyDodgeMethod", dodgeLanguage.EnableLegacyDodgeMethod);
 		ReadStringSetting(ini, "Main", "EnableLegacyDodgeMethod_Description", dodgeLanguage.EnableLegacyDodgeMethod_Description);
 		ReadStringSetting(ini, "Main", "EnableDodgeFootStepSound", dodgeLanguage.EnableDodgeFootStepSound);

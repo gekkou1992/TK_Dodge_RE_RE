@@ -24,15 +24,15 @@ public:
 		static Settings singleton;
 		return singleton;
 	}
-	std::uint32_t dodgeKey{ 42 };
+	std::uint32_t DodgeKey{ 42 };
 	bool EnableSprintKeyDodge{ false };
 	bool EnableSneakKeyDodge{ false };
-	bool stepDodge{ false };
-	float dodgeStamina{ 10.f };
-	bool enableSneakDodge{ false };
-	bool enableDodgeAttackCancel{ true };
+	bool StepDodge{ false };
+	float DodgeStamina{ 10.f };
+	bool EnableSneakDodge{ false };
+	bool EnableDodgeAttackCancel{ true };
 	float iFrameDuration{ 0.3f };
-	std::string defaultDodgeEvent{ "TKDodgeBack" };
+	std::string DefaultDodgeEvent{ "TKDodgeBack" };
 	float SprintingPressDuration{ 0.3f };
 	float SneakingPressDuration{ 0.3f };
 	std::uint32_t GamepadDodgeKey{ UINT32_MAX };
@@ -78,57 +78,50 @@ namespace tkdrere
 	{
 	public:
 		LanguageManager() = default;
+
 		struct GeneralLanguage
 		{
-			//std::string sLanguageError_Title{ "Error" };
-			//std::string sLanguageLoadError_Message{ "Failed to load the language file!" };
-			//std::string sLanguageSaveError_Message{ "Failed to save the language file!" };
-			//std::string sLanguage{ "Language" };
-			//std::string sLanguage_Description{ "Select the language file to use." };
-			//std::string sGeneral{ "General" };
-			std::string sDodge{ "Dodge Settings" };			
-			//std::string iLogLevel{ "Loglevel" };
-			//std::string iLogLevel_Description{ "Controls the level of log output. Default is [2]." };
-
+			std::string sDodge{ "Dodge Settings" };
 		};
 		GeneralLanguage generelLanguage;
 
 		struct DodgeLanguage
 		{
 			std::string DodgeHotkey{ "Dodge Key" };
-			std::string DodgeHotkey_Description{ "Key used to perform a dodge. Right-click to reset to default." };
+			std::string DodgeHotkey_Description{ "Key used to dodge. Right-click to reset to default." };
 			std::string EnableSprintKeyDodge{ "Enable Sprint Key Dodge" };
-			std::string EnableSprintKeyDodge_Description{ "Set the dodge perform by tapping sprint button, that will replace the dodge hotkey with sprint key.\n Require Classic Sprinting Redone(https://www.nexusmods.com/skyrimspecialedition/mods/20166) to work. Right-click to reset to default." };
-			std::string	StepDodge{ "Step Dodge" };
-			std::string	StepDodge_Description{ "Set if perform step dodge instead of rolling dodge, \"true\" is enable while \"false\" is disable. Right-click to reset to default." };
-			std::string	DodgeStamina{ "Dodge Stamina" };
-			std::string DodgeStamina_Description{ "Set the stamina cost when perform dodge. Right-click to reset to default." };
-			std::string enableSneakDodge{ "Enable Sneak Dodge" };
-			std::string enableSneakDodge_Description{ "Set if allow perfrom dodge when sneaking. Right-click to reset to default." };
+			std::string EnableSprintKeyDodge_Description{ "Enable dodging by tapping the sprint key. This replaces the dodge hotkey with the sprint key.\nRequires Classic Sprinting Redone(https://www.nexusmods.com/skyrimspecialedition/mods/20166) to work.\nRight-click to reset to default." };
+			std::string StepDodge{ "Step Dodge" };
+			std::string StepDodge_Description{ "Choose whether to perform a step dodge instead of a roll dodge.\n\"true\" = Enabled, \"false\" = Disabled.\nRight-click to reset to default." };
+			std::string DodgeStamina{ "Dodge Stamina" };
+			std::string DodgeStamina_Description{ "Set the stamina cost per dodge. Right-click to reset to default." };
+			std::string EnableSneakDodge{ "Enable Sneak Dodge" };
+			std::string EnableSneakDodge_Description{ "Allow dodging while sneaking. Right-click to reset to default." };
 			std::string sBind{ "Bind" };
-			std::string sBind_Description{ "Press a keyboard key or gamepad button to assign the dodge key. Right-click to reset to default dodge key." };
+			std::string sBind_Description{ "Press any keyboard key or gamepad button to assign the dodge key.\nRight-click to reset to the default dodge key." };
 			std::string sCancel{ "Cancel" };
 			std::string sPressKeyOrButton{ "press a key or button (Escape cancels)" };
 			std::string iFrameDuration{ "iFrame Duration" };
-			std::string iFrameDuration_Description{ "Set the duration of invincibility frames. unit : second(s). Right-click to reset to default." };
+			std::string iFrameDuration_Description{ "Set the duration of invincibility frames in seconds.\nRight-click to reset to default." };
 			std::string EnableDodgeAttackCancel{ "Enable Dodge Attack Cancel" };
-			std::string EnableDodgeAttackCancel_Description{ "Allow dodge to cancel attacks. Right-click to reset to default." };
-			std::string defaultDodgeEvent{ "default Dodge Event" };
-			std::string defaultDodgeEvent_Description{ "default dodge event triggered when not moving.\n Available options: \"TKDodgeForward\", \"TKDodgeLeft\", \"TKDodgeRight\", \"TKDodgeBack\".\n Levae it blank may cause CTD,use \"EndAnimatedCamera\" can disable this feature too. Right-click to reset to default." };
+			std::string EnableDodgeAttackCancel_Description{ "Allow dodging to cancel attacks.\nRight-click to reset to default." };
+			std::string DefaultDodgeEvent{ "Default Dodge Event" };
+			std::string DefaultDodgeEvent_Description{ "Default dodge animation played when the player is stationary.\nAvailable options: \"TKDodgeForward\", \"TKDodgeLeft\", \"TKDodgeRight\", \"TKDodgeBack\".\nLeaving it blank may cause a CTD.\nYou can also use \"EndAnimatedCamera\" to disable this feature.\nRight-click to reset to default." };
 			std::string EnableLegacyDodgeMethod{ "Enable Legacy Dodge Method" };
-			std::string EnableLegacyDodgeMethod_Description{ "false = Original TK Dodge RE behavior.\ntrue = Legacy dodge method. Right-click to reset to default." };
-			std::string EnableDodgeFootStepSound{ "Enable Dodge Foot Step Sound" };
-			std::string EnableDodgeFootStepSound_Description{ "Add annotations to your favorite dodge .hkx files. Right-click to reset to default." };
+			std::string EnableLegacyDodgeMethod_Description{ "false = Original TK Dodge RE behavior.\ntrue = Legacy dodge method.\nRight-click to reset to default." };
+			std::string EnableDodgeFootStepSound{ "Enable Dodge Footstep Sound" };
+			std::string EnableDodgeFootStepSound_Description{ "Enable footstep sounds during dodging. Requires footstep annotations in the dodge animation files.\nRight-click to reset to default." };
 			std::string PrioritizeHorizontalDodge{ "Prioritize Horizontal Dodge" };
-			std::string PrioritizeHorizontalDodge_Description{ "Prioritize horizontal or vertical dodge animations for diagonal input.\n1 = Horizontal(Left / Right), 0 = Vertical(Forward / Backward). Right-click to reset to default." };
+			std::string PrioritizeHorizontalDodge_Description{ "Prioritize horizontal or vertical dodge animations for diagonal input.\n1 = Horizontal(Left / Right), 0 = Vertical(Forward / Backward).\nRight-click to reset to default." };
 			//std::string GamepadDodgeKey{ "Gamepad Dodge Key" };
-			//std::string GamepadDodgeKey_Description{ "Gamepad Key used to perform a dodge. Right-click to reset to default." };
+			//std::string GamepadDodgeKey_Description{ "Press this button to perform a dodge.\nRight-click to reset to default." };
 			std::string EnableSprintKeyDoubleTap{ "Enable Sprint Key Double Tap" };
-			std::string EnableSprintKeyDoubleTap_Description{ "Enable dodging by double-tapping the sprint key. Right-click to reset to default." };
+			std::string EnableSprintKeyDoubleTap_Description{ "Enable dodging by double-tapping the sprint key.\nRight-click to reset to default." };
 			std::string DoubleTapDuration{ "Double Tap Duration" };
-			std::string DoubleTapDuration_Description{ "Maximum time between the first key release and the second key press (in seconds). Right-click to reset to default." };
+			std::string DoubleTapDuration_Description{ "Maximum time between the first key release and the second key press (in seconds).\nRight-click to reset to default." };
 		};
 		DodgeLanguage dodgeLanguage;
+
 		static LanguageManager& GetSingleton(void);
 		void LoadLanguage(void);
 	private:

@@ -383,12 +383,58 @@ static void __stdcall OnMenuEvent(SKSEMenuFramework::Model::EventType eventType)
 		}
 	}
 }
-void __stdcall RenderDodge()
+
+static bool RenderConfigCheckbox(const std::string& label, bool& value, const bool defaultValue, const std::string& description)
 {
-	static const Settings defaultSettings{};
-	static auto& _settings = Settings::GetSingleton();
-	static auto& dodging = tkdrere::LanguageManager::GetSingleton().dodgeLanguage;
-	
+	bool changed = ImGuiMCP::Checkbox(label.c_str(), &value);
+
+	if (ImGuiMCP::IsItemClicked(ImGuiMCP::ImGuiMouseButton_Right)) {
+		if (value != defaultValue) {
+			value = defaultValue;
+			changed = true;
+		}
+	}
+
+	if (ImGuiMCP::IsItemHovered(ImGuiMCP::ImGuiHoveredFlags_AllowWhenDisabled)) {
+		ImGuiMCP::SetTooltip("%s", description.c_str());
+	}
+
+	return changed;
+}
+static bool RenderConfigCheckbox(const std::string& label, std::atomic<bool>& value, const std::atomic<bool>& defaultValue, const std::string& description)
+{
+	bool currentValue = value.load(std::memory_order_relaxed);
+
+	if (RenderConfigCheckbox(label, currentValue, defaultValue.load(std::memory_order_relaxed), description)) {
+		value.store(currentValue, std::memory_order_relaxed);
+		return true;
+	}
+
+	return false;
+}
+static bool RenderConfigSliderFloat(const std::string& label, float& value, const float defaultValue, const float minValue, const float maxValue, const char* format, const std::string& description)
+{
+	ImGuiMCP::SliderFloat(label.c_str(), &value, minValue, maxValue, format, ImGuiMCP::ImGuiSliderFlags_AlwaysClamp);
+
+	bool changed = ImGuiMCP::IsItemDeactivatedAfterEdit();
+
+	if (ImGuiMCP::IsItemClicked(ImGuiMCP::ImGuiMouseButton_Right)) {
+		if (value != defaultValue) {
+			value = defaultValue;
+			changed = true;
+		}
+	}
+
+	if (ImGuiMCP::IsItemHovered()) {
+		ImGuiMCP::SetTooltip("%s", description.c_str());
+	}
+
+	return changed;
+}
+static void RenderDodgeKeyBind(Settings& _settings, const Settings& defaultSettings)
+{
+	auto& dodging = tkdrere::LanguageManager::GetSingleton().dodgeLanguage;
+
 	if (!g_captureTarget.load() && g_inputEvent) {
 		StopInputEvent();
 	}
@@ -401,18 +447,28 @@ void __stdcall RenderDodge()
 			StopInputEvent();
 		}
 	}
-	ImGuiMCP::AlignTextToFramePadding();
-	ImGuiMCP::Text("%s: { %s }", dodging.DodgeHotkey.c_str(), KeyNameFor(_settings.DodgeKey).c_str());
-	if (ImGuiMCP::IsItemClicked(ImGuiMCP::ImGuiMouseButton_Right)) {
+
+	const auto resetKey = [&]() {
 		if (_settings.DodgeKey != defaultSettings.DodgeKey) {
 			_settings.DodgeKey = defaultSettings.DodgeKey;
 			g_capturedKey.store(0);
 			++editDodgeConfig;
 		}
+		};
+
+	ImGuiMCP::AlignTextToFramePadding();
+	ImGuiMCP::Text("%s: { %s }",
+		dodging.DodgeHotkey.c_str(),
+		KeyNameFor(_settings.DodgeKey).c_str());
+
+	if (ImGuiMCP::IsItemClicked(ImGuiMCP::ImGuiMouseButton_Right)) {
+		resetKey();
 	}
+
 	if (ImGuiMCP::IsItemHovered()) {
 		ImGuiMCP::SetTooltip("%s", dodging.DodgeHotkey_Description.c_str());
 	}
+
 	ImGuiMCP::SameLine();
 
 	if (g_captureTarget.load()) {
@@ -431,96 +487,17 @@ void __stdcall RenderDodge()
 			g_captureTarget.store(true);
 			g_capturedKey.store(0);
 		}
+
 		if (ImGuiMCP::IsItemClicked(ImGuiMCP::ImGuiMouseButton_Right)) {
-			if (_settings.DodgeKey != defaultSettings.DodgeKey) {
-				_settings.DodgeKey = defaultSettings.DodgeKey;
-				g_capturedKey.store(0);
-				++editDodgeConfig;
-			}
+			resetKey();
 		}
+
 		ImGuiMCP::SetItemTooltip("%s", dodging.sBind_Description.c_str());
 	}
-
-	if (ImGuiMCP::Checkbox(dodging.EnableSprintKeyDodge.c_str(), &_settings.EnableSprintKeyDodge)) {
-		++editDodgeConfig;
-	}
-	if (ImGuiMCP::IsItemClicked(ImGuiMCP::ImGuiMouseButton_Right)) {
-		if (_settings.EnableSprintKeyDodge != defaultSettings.EnableSprintKeyDodge) {
-			_settings.EnableSprintKeyDodge = defaultSettings.EnableSprintKeyDodge;
-			++editDodgeConfig;
-		}
-	}
-	if (ImGuiMCP::IsItemHovered(ImGuiMCP::ImGuiHoveredFlags_AllowWhenDisabled)) {
-		ImGuiMCP::SetTooltip("%s", dodging.EnableSprintKeyDodge_Description.c_str());
-	}
-
-	if (ImGuiMCP::Checkbox(dodging.StepDodge.c_str(), &_settings.StepDodge)) {
-		++editDodgeConfig;
-	}
-	if (ImGuiMCP::IsItemClicked(ImGuiMCP::ImGuiMouseButton_Right)) {
-		if (_settings.StepDodge != defaultSettings.StepDodge) {
-			_settings.StepDodge = defaultSettings.StepDodge;
-			++editDodgeConfig;
-		}
-	}
-	if (ImGuiMCP::IsItemHovered(ImGuiMCP::ImGuiHoveredFlags_AllowWhenDisabled)) {
-		ImGuiMCP::SetTooltip("%s", dodging.StepDodge_Description.c_str());
-	}		
-
-	ImGuiMCP::SliderFloat(dodging.DodgeStamina.c_str(), &_settings.DodgeStamina, 0.0f, playerStaminaMax, "%.0f", ImGuiMCP::ImGuiSliderFlags_AlwaysClamp);
-	if (ImGuiMCP::IsItemDeactivatedAfterEdit()) {
-		++editDodgeConfig;
-	}
-	if (ImGuiMCP::IsItemClicked(ImGuiMCP::ImGuiMouseButton_Right)) {
-		if (_settings.DodgeStamina != defaultSettings.DodgeStamina) {
-			_settings.DodgeStamina = defaultSettings.DodgeStamina;
-			++editDodgeConfig;
-		}
-	}
-	if (ImGuiMCP::IsItemHovered()) {
-		ImGuiMCP::SetTooltip("%s", dodging.DodgeStamina_Description.c_str());
-	}	
-
-	if (ImGuiMCP::Checkbox(dodging.EnableSneakDodge.c_str(), &_settings.EnableSneakDodge)) {
-		++editDodgeConfig;
-	}
-	if (ImGuiMCP::IsItemClicked(ImGuiMCP::ImGuiMouseButton_Right)) {
-		if (_settings.EnableSneakDodge != defaultSettings.EnableSneakDodge) {
-			_settings.EnableSneakDodge = defaultSettings.EnableSneakDodge;
-			++editDodgeConfig;
-		}
-	}
-	if (ImGuiMCP::IsItemHovered(ImGuiMCP::ImGuiHoveredFlags_AllowWhenDisabled)) {
-		ImGuiMCP::SetTooltip("%s", dodging.EnableSneakDodge_Description.c_str());
-	}
-
-	ImGuiMCP::SliderFloat(dodging.iFrameDuration.c_str(), &_settings.iFrameDuration, 0.0f, 1.0f, "%.1f", ImGuiMCP::ImGuiSliderFlags_AlwaysClamp);
-	if (ImGuiMCP::IsItemDeactivatedAfterEdit()) {
-		++editDodgeConfig;
-	}
-	if (ImGuiMCP::IsItemClicked(ImGuiMCP::ImGuiMouseButton_Right)) {
-		if (_settings.iFrameDuration != defaultSettings.iFrameDuration) {
-			_settings.iFrameDuration = defaultSettings.iFrameDuration;
-			++editDodgeConfig;
-		}
-	}
-	if (ImGuiMCP::IsItemHovered()) {
-		ImGuiMCP::SetTooltip("%s", dodging.iFrameDuration_Description.c_str());
-	}	
-
-	if (ImGuiMCP::Checkbox(dodging.EnableDodgeAttackCancel.c_str(), &_settings.EnableDodgeAttackCancel)) {
-		++editDodgeConfig;
-	}
-	if (ImGuiMCP::IsItemClicked(ImGuiMCP::ImGuiMouseButton_Right)) {
-		if (_settings.EnableDodgeAttackCancel != defaultSettings.EnableDodgeAttackCancel) {
-			_settings.EnableDodgeAttackCancel = defaultSettings.EnableDodgeAttackCancel;
-			++editDodgeConfig;
-		}
-	}
-	if (ImGuiMCP::IsItemHovered(ImGuiMCP::ImGuiHoveredFlags_AllowWhenDisabled)) {
-		ImGuiMCP::SetTooltip("%s", dodging.EnableDodgeAttackCancel_Description.c_str());
-	}
-
+}
+static void RenderDefaultDodgeEvent(Settings& _settings, const Settings& defaultSettings)
+{
+	auto& dodging = tkdrere::LanguageManager::GetSingleton().dodgeLanguage;
 
 	const auto it = std::ranges::find(dodgeEvents, _settings.DefaultDodgeEvent);
 	int selectedEvent = it != dodgeEvents.end() ? static_cast<int>(it - dodgeEvents.begin()) : 0;
@@ -529,84 +506,49 @@ void __stdcall RenderDodge()
 		_settings.DefaultDodgeEvent = dodgeEvents[selectedEvent];
 		++editDodgeConfig;
 	}
+
 	if (ImGuiMCP::IsItemClicked(ImGuiMCP::ImGuiMouseButton_Right)) {
 		if (_settings.DefaultDodgeEvent != defaultSettings.DefaultDodgeEvent) {
 			_settings.DefaultDodgeEvent = defaultSettings.DefaultDodgeEvent;
 			++editDodgeConfig;
 		}
 	}
+
 	if (ImGuiMCP::IsItemHovered()) {
 		ImGuiMCP::SetTooltip("%s", dodging.DefaultDodgeEvent_Description.c_str());
 	}
+}
+void __stdcall RenderDodge()
+{
+	static const Settings defaultSettings{};
+	static auto& _settings = Settings::GetSingleton();
+	static auto& dodging = tkdrere::LanguageManager::GetSingleton().dodgeLanguage;
 
-	if (ImGuiMCP::Checkbox(dodging.EnableLegacyDodgeMethod.c_str(), &_settings.EnableLegacyDodgeMethod)) {
-		++editDodgeConfig;
-	}
-	if (ImGuiMCP::IsItemClicked(ImGuiMCP::ImGuiMouseButton_Right)) {
-		if (_settings.EnableLegacyDodgeMethod != defaultSettings.EnableLegacyDodgeMethod) {
-			_settings.EnableLegacyDodgeMethod = defaultSettings.EnableLegacyDodgeMethod;
-			++editDodgeConfig;
-		}
-	}
-	if (ImGuiMCP::IsItemHovered(ImGuiMCP::ImGuiHoveredFlags_AllowWhenDisabled)) {
-		ImGuiMCP::SetTooltip("%s", dodging.EnableLegacyDodgeMethod_Description.c_str());
-	}
+	RenderDodgeKeyBind(_settings, defaultSettings);
 
-	if (ImGuiMCP::Checkbox(dodging.EnableDodgeFootStepSound.c_str(), &_settings.EnableDodgeFootStepSound)) {
-		++editDodgeConfig;
-	}
-	if (ImGuiMCP::IsItemClicked(ImGuiMCP::ImGuiMouseButton_Right)) {
-		if (_settings.EnableDodgeFootStepSound != defaultSettings.EnableDodgeFootStepSound) {
-			_settings.EnableDodgeFootStepSound = defaultSettings.EnableDodgeFootStepSound;
-			++editDodgeConfig;
-		}
-	}
-	if (ImGuiMCP::IsItemHovered(ImGuiMCP::ImGuiHoveredFlags_AllowWhenDisabled)) {
-		ImGuiMCP::SetTooltip("%s", dodging.EnableDodgeFootStepSound_Description.c_str());
-	}
+	editDodgeConfig += RenderConfigCheckbox(dodging.EnableSprintKeyDodge, _settings.EnableSprintKeyDodge, defaultSettings.EnableSprintKeyDodge, dodging.EnableSprintKeyDodge_Description);
 
-	bool _PrioritizeHorizontalDodge = _settings.PrioritizeHorizontalDodge.load(std::memory_order_relaxed);
-	if (ImGuiMCP::Checkbox(dodging.PrioritizeHorizontalDodge.c_str(), &_PrioritizeHorizontalDodge)) {
-		_settings.PrioritizeHorizontalDodge.store(_PrioritizeHorizontalDodge, std::memory_order_relaxed);
-		++editDodgeConfig;
-	}
-	if (ImGuiMCP::IsItemClicked(ImGuiMCP::ImGuiMouseButton_Right)) {
-		if (_PrioritizeHorizontalDodge != defaultSettings.PrioritizeHorizontalDodge.load(std::memory_order_relaxed)) {
-			_PrioritizeHorizontalDodge = defaultSettings.PrioritizeHorizontalDodge.load(std::memory_order_relaxed);
-			_settings.PrioritizeHorizontalDodge.store(_PrioritizeHorizontalDodge, std::memory_order_relaxed);
-			++editDodgeConfig;
-		}
-	}
-	if (ImGuiMCP::IsItemHovered(ImGuiMCP::ImGuiHoveredFlags_AllowWhenDisabled)) {
-		ImGuiMCP::SetTooltip("%s", dodging.PrioritizeHorizontalDodge_Description.c_str());
-	}
+	editDodgeConfig += RenderConfigCheckbox(dodging.StepDodge, _settings.StepDodge, defaultSettings.StepDodge, dodging.StepDodge_Description);
 
-	if (ImGuiMCP::Checkbox(dodging.EnableSprintKeyDoubleTap.c_str(), &_settings.EnableSprintKeyDoubleTap)) {
-		++editDodgeConfig;
-	}
-	if (ImGuiMCP::IsItemClicked(ImGuiMCP::ImGuiMouseButton_Right)) {
-		if (_settings.EnableSprintKeyDoubleTap != defaultSettings.EnableSprintKeyDoubleTap) {
-			_settings.EnableSprintKeyDoubleTap = defaultSettings.EnableSprintKeyDoubleTap;
-			++editDodgeConfig;
-		}
-	}
-	if (ImGuiMCP::IsItemHovered(ImGuiMCP::ImGuiHoveredFlags_AllowWhenDisabled)) {
-		ImGuiMCP::SetTooltip("%s", dodging.EnableSprintKeyDoubleTap_Description.c_str());
-	}
+	editDodgeConfig += RenderConfigSliderFloat(dodging.DodgeStamina, _settings.DodgeStamina, defaultSettings.DodgeStamina, 0.0f, playerStaminaMax, "%.0f", dodging.DodgeStamina_Description);
 
-	ImGuiMCP::SliderFloat(dodging.DoubleTapDuration.c_str(), &_settings.DoubleTapDuration, 0.1f, 0.5f, "%.2f", ImGuiMCP::ImGuiSliderFlags_AlwaysClamp);
-	if (ImGuiMCP::IsItemDeactivatedAfterEdit()) {
-		++editDodgeConfig;
-	}
-	if (ImGuiMCP::IsItemClicked(ImGuiMCP::ImGuiMouseButton_Right)) {
-		if (_settings.DoubleTapDuration != defaultSettings.DoubleTapDuration) {
-			_settings.DoubleTapDuration = defaultSettings.DoubleTapDuration;
-			++editDodgeConfig;
-		}
-	}
-	if (ImGuiMCP::IsItemHovered()) {
-		ImGuiMCP::SetTooltip("%s", dodging.DoubleTapDuration_Description.c_str());
-	}
+	editDodgeConfig += RenderConfigCheckbox(dodging.EnableSneakDodge, _settings.EnableSneakDodge, defaultSettings.EnableSneakDodge, dodging.EnableSneakDodge_Description);
+
+	editDodgeConfig += RenderConfigSliderFloat(dodging.iFrameDuration, _settings.iFrameDuration, defaultSettings.iFrameDuration, 0.0f, 1.0f, "%.1f", dodging.iFrameDuration_Description);
+
+	editDodgeConfig += RenderConfigCheckbox(dodging.EnableDodgeAttackCancel, _settings.EnableDodgeAttackCancel, defaultSettings.EnableDodgeAttackCancel, dodging.EnableDodgeAttackCancel_Description);
+
+	RenderDefaultDodgeEvent(_settings, defaultSettings);
+
+	editDodgeConfig += RenderConfigCheckbox(dodging.EnableLegacyDodgeMethod, _settings.EnableLegacyDodgeMethod, defaultSettings.EnableLegacyDodgeMethod, dodging.EnableLegacyDodgeMethod_Description);
+
+	editDodgeConfig += RenderConfigCheckbox(dodging.EnableDodgeFootStepSound, _settings.EnableDodgeFootStepSound, defaultSettings.EnableDodgeFootStepSound, dodging.EnableDodgeFootStepSound_Description);
+
+	editDodgeConfig += RenderConfigCheckbox(dodging.PrioritizeHorizontalDodge, _settings.PrioritizeHorizontalDodge, defaultSettings.PrioritizeHorizontalDodge, dodging.PrioritizeHorizontalDodge_Description);
+
+	editDodgeConfig += RenderConfigCheckbox(dodging.EnableSprintKeyDoubleTap, _settings.EnableSprintKeyDoubleTap, defaultSettings.EnableSprintKeyDoubleTap, dodging.EnableSprintKeyDoubleTap_Description);
+
+	editDodgeConfig += RenderConfigSliderFloat(dodging.DoubleTapDuration, _settings.DoubleTapDuration, defaultSettings.DoubleTapDuration, 0.1f, 0.5f, "%.2f", dodging.DoubleTapDuration_Description);
 }
 
 namespace tkdrere
@@ -696,8 +638,8 @@ namespace tkdrere
 		settings.readAdditionalSettings();
 		settings.readCustomSettings();
 		SKSEMenuFramework::SetSection("TK Dodge RE RE");
-		auto language = LanguageManager::GetSingleton();
-		language.LoadLanguage();
+		auto& language = LanguageManager::GetSingleton();
+		LanguageManager::GetSingleton().LoadLanguage();
 		SKSEMenuFramework::AddSectionItem(language.generelLanguage.sDodge, RenderDodge);
 		menuEvent.reset(SKSEMenuFramework::AddEvent(OnMenuEvent, 0.0f));
 	}

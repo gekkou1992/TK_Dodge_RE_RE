@@ -76,8 +76,11 @@ namespace tkdrere
 
 	class LanguageManager
 	{
-	public:
-		LanguageManager() = default;
+	public:		
+		LanguageManager(const LanguageManager&) = delete;
+		LanguageManager& operator=(const LanguageManager&) = delete;
+		LanguageManager(LanguageManager&&) = delete;
+		LanguageManager& operator=(LanguageManager&&) = delete;
 
 		struct GeneralLanguage
 		{
@@ -125,6 +128,8 @@ namespace tkdrere
 		static LanguageManager& GetSingleton(void);
 		void LoadLanguage(void);
 	private:
+		LanguageManager() = default;
+		~LanguageManager() = default;
 		void ReadStringSetting(CSimpleIniA& a_ini, const char* a_sectionName, const char* a_settingName, std::string& a_setting);
 	};
 
